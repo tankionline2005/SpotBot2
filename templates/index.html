@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="SpotBot2"/>
+<meta name="theme-color" content="#E8192C"/>
+<link rel="manifest" href="/static/manifest.json"/>
+<link rel="apple-touch-icon" href="/static/png/logo192x192.png"/>
+<title>SpotBot2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600;700&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --red: #E8192C;
+    --red-light: #ff3347;
+    --black: #0a0a0a;
+    --dark: #1c1c1e;
+    --gray: #636366;
+    --gray2: #aeaeb2;
+    --gray3: #c7c7cc;
+    --gray4: #d1d1d6;
+    --gray5: #e5e5ea;
+    --gray6: #f2f2f7;
+    --white: #ffffff;
+    --font: 'Nunito', system-ui, sans-serif;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bot: env(safe-area-inset-bottom, 0px);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; background: var(--white); font-family: var(--font); color: var(--black); -webkit-font-smoothing: antialiased; }
+
+  /* ── LAYOUT ── */
+  #app { display: flex; flex-direction: column; height: 100%; }
+  
+  .header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: calc(var(--safe-top) + 12px) 20px 12px;
+    background: var(--white);
+    border-bottom: 1px solid var(--gray5);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 10;
+  }
+  .header-brand { display: flex; flex-direction: column; line-height: 1; }
+  .header-title { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; color: var(--black); }
+  .header-title span { color: var(--red); }
+  .header-sub { font-size: 10px; color: var(--gray2); font-weight: 500; letter-spacing: 0.3px; margin-top: 2px; }
+  .header-action { display: flex; gap: 8px; }
+
+  .content { flex: 1; overflow: hidden; position: relative; }
+  
+  /* ── TABS ── */
+  .tab-bar {
+    display: flex; align-items: center; justify-content: space-around;
+    padding: 8px 0 calc(var(--safe-bot) + 8px);
+    background: rgba(255,255,255,0.95);
+    border-top: 1px solid var(--gray5);
+    backdrop-filter: blur(20px);
+    flex-shrink: 0;
+    z-index: 10;
+  }
+  .tab-btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 8px 0; cursor: pointer; border: none; background: none;
+    color: var(--gray2); transition: color .2s ease;
+  }
+  .tab-btn.active { color: var(--red); }
+  .tab-btn svg, .tab-btn img { width: 24px; height: 24px; transition: transform .15s ease; }
+  .tab-btn.active svg, .tab-btn.active img { transform: scale(1.1); }
+  .tab-btn img { filter: brightness(0); opacity: 0.3; transition: opacity .2s, filter .2s, transform .15s; }
+  .tab-btn.active img { filter: none; opacity: 1; }
+
+  /* ── PANELS ── */
+  .panels { display: flex; width: 300%; height: 100%; transition: transform .35s cubic-bezier(.4,0,.2,1); }
+  .panel { width: 33.333%; height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+  /* ── ORDERS TAB ── */
+  .orders-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px 12px; position: sticky; top: 0;
+    background: var(--white); z-index: 5;
+    border-bottom: 1px solid var(--gray5);
+  }
+  .date-info { display: flex; flex-direction: column; cursor: pointer; }
+  .date-label { font-size: 13px; color: var(--gray); font-weight: 500; }
+  .date-total { font-size: 22px; font-weight: 800; color: var(--black); letter-spacing: -0.5px; }
+  .date-count { font-size: 13px; font-weight: 600; color: var(--gray); background: var(--gray4); border-radius: 10px; padding: 3px 10px; white-space: nowrap; margin-left: auto; margin-right: 8px; }
+  .date-total .currency { font-size: 14px; color: var(--gray); font-weight: 600; }
+  #date-input { position: absolute; opacity: 0; pointer-events: none; }
+
+  .btn-add {
+    width: 44px; height: 44px; border-radius: 50%; background: var(--red);
+    border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 14px rgba(232,25,44,.35); transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .btn-add:active { transform: scale(0.92); box-shadow: 0 2px 8px rgba(232,25,44,.25); }
+  .btn-add svg { width: 22px; height: 22px; stroke: white; }
+
+  /* ── ORDER LIST ── */
+  .order-list { padding: 8px 0 20px; }
+  .order-item-wrap { position: relative; overflow: hidden; }
+  .order-delete-bg {
+    position: absolute; right: 0; top: 0; bottom: 0; background: var(--red);
+    display: flex; align-items: center; justify-content: flex-end;
+    padding-right: 20px; min-width: 80px;
+    border-radius: 0;
+  }
+  .order-delete-bg img, .order-delete-bg svg { width: 22px; height: 22px; filter: brightness(0) invert(1); }
+  .order-card {
+    display: flex; align-items: center; padding: 14px 20px;
+    background: var(--white); cursor: pointer;
+    border-bottom: 1px solid var(--gray5);
+    transition: background .12s ease;
+    position: relative; z-index: 1;
+    transform: translateX(0);
+    will-change: transform;
+    user-select: none;
+  }
+  .order-card:active { background: var(--gray6); }
+  .order-card-left { flex: 1; min-width: 0; }
+  .order-address { font-size: 15px; font-weight: 600; color: var(--black); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .order-meta { font-size: 13px; color: var(--gray); margin-top: 2px; }
+  .order-card-right { text-align: right; flex-shrink: 0; margin-left: 12px; }
+  .order-cost { font-size: 17px; font-weight: 700; color: var(--black); }
+  .order-time { font-size: 12px; color: var(--gray2); margin-top: 2px; }
+
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--gray2); }
+  .empty-state-icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-state p { font-size: 16px; font-weight: 500; }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(0,0,0,0.4);
+    display: flex; flex-direction: column; justify-content: flex-end;
+    opacity: 0; pointer-events: none;
+    transition: opacity .3s ease;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--white); border-radius: 20px 20px 0 0;
+    padding-bottom: calc(var(--safe-bot) + 20px);
+    max-height: 92vh; overflow-y: auto;
+    transform: translateY(100%);
+    transition: transform .35s cubic-bezier(.4,0,.2,1);
+    -webkit-overflow-scrolling: touch;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+
+  .modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 20px 16px; position: sticky; top: 0;
+    background: var(--white); z-index: 2;
+    border-bottom: 1px solid var(--gray5);
+  }
+  .modal-title { font-size: 17px; font-weight: 700; color: var(--black); }
+  .btn-icon {
+    width: 36px; height: 36px; border-radius: 50%; border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--gray6); transition: background .12s, transform .12s;
+  }
+  .btn-icon:active { transform: scale(0.9); }
+  .btn-icon img, .btn-icon svg { width: 18px; height: 18px; }
+  .btn-icon.save { background: var(--red); }
+  .btn-icon.save img, .btn-icon.save svg { filter: brightness(0) invert(1); }
+
+  .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 0; }
+  .modal-body .field { margin-bottom: 16px; }
+
+  .field { display: flex; flex-direction: column; gap: 6px; position: relative; }
+  .field label { font-size: 12px; font-weight: 700; color: var(--gray); text-transform: uppercase; letter-spacing: 0.6px; }
+  .field input {
+    border: 1.5px solid var(--gray4); border-radius: 12px;
+    padding: 14px 16px; font-size: 16px; font-family: var(--font); font-weight: 500;
+    background: var(--gray6); color: var(--black);
+    outline: none; transition: border-color .2s, background .2s;
+    width: 100%;
+  }
+  .field input:focus { border-color: var(--red); background: var(--white); }
+
+  .suggest-list {
+    position: fixed;
+    background: var(--white);
+    border: 1.5px solid var(--gray4);
+    border-radius: 12px;
+    overflow-y: auto;
+    max-height: 220px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.18);
+    z-index: 9999;
+    display: none;
+  }
+  .suggest-list.show { display: block; }
+  .suggest-item {
+    padding: 12px 16px; font-size: 14px; font-weight: 500; cursor: pointer;
+    border-bottom: 1px solid var(--gray5); color: var(--black);
+    transition: background .1s;
+  }
+  .suggest-item:last-child { border-bottom: none; }
+  .suggest-item:active { background: var(--gray6); }
+
+  .photos-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .photo-thumb-wrap { position: relative; width: 80px; height: 80px; }
+  .photo-thumb {
+    width: 80px; height: 80px; object-fit: cover; border-radius: 10px;
+    display: block; touch-action: none;
+  }
+  .photo-remove {
+    position: absolute; top: -6px; right: -6px; width: 22px; height: 22px;
+    background: var(--red); border-radius: 50%; border: 2px solid var(--white);
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    font-size: 13px; color: white; font-weight: 700; line-height: 1;
+  }
+  .photo-ai-btn {
+    position: absolute; bottom: -6px; right: -6px; width: 28px; height: 18px;
+    background: #007AFF; border-radius: 6px; border: 2px solid var(--white);
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    font-size: 10px; color: white; font-weight: 800; line-height: 1;
+    letter-spacing: -0.3px; transition: opacity .15s, transform .15s;
+  }
+  .photo-ai-btn:active { transform: scale(0.9); opacity: 0.8; }
+  .photo-ai-btn.loading {
+    opacity: 0.6; pointer-events: none;
+    animation: ai-pulse .8s ease-in-out infinite alternate;
+  }
+  @keyframes ai-pulse { from { opacity: 0.4; } to { opacity: 0.9; } }
+
+  /* ── LIGHTBOX ── */
+  .lightbox {
+    position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,.93);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity .25s ease;
+  }
+  .lightbox.open { opacity: 1; pointer-events: all; }
+  .lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; touch-action: pinch-zoom; }
+  .lightbox-close { position: absolute; top: calc(var(--safe-top)+16px); right: 16px; width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,.15); border: none; cursor: pointer; color: white; font-size: 22px; display: flex; align-items: center; justify-content: center; }
+
+  /* ── STATS TAB ── */
+  .stats-section { padding: 20px; }
+  .stats-card {
+    background: var(--gray6); border-radius: 16px; padding: 20px;
+    margin-bottom: 16px;
+  }
+  .stats-card-title { font-size: 13px; font-weight: 700; color: var(--gray); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 16px; }
+  .stats-big { display: flex; gap: 20px; }
+  .stats-metric { flex: 1; }
+  .stats-metric-val { font-size: 28px; font-weight: 800; color: var(--black); letter-spacing: -1px; }
+  .stats-metric-label { font-size: 12px; color: var(--gray); font-weight: 500; margin-top: 2px; }
+
+  .top-table { width: 100%; border-collapse: collapse; }
+  .top-table th { text-align: left; font-size: 11px; color: var(--gray); text-transform: uppercase; letter-spacing: 0.5px; padding: 0 0 10px; font-weight: 700; }
+  .top-table th:not(:first-child) { text-align: right; }
+  .top-table td { padding: 10px 0; border-top: 1px solid var(--gray5); font-size: 13px; color: var(--black); font-weight: 500; vertical-align: middle; }
+  .top-table td:not(:first-child) { text-align: right; }
+  .top-table .addr-cell { font-weight: 600; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rank-badge { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 6px; background: var(--gray5); font-size: 11px; font-weight: 700; color: var(--gray); margin-right: 8px; flex-shrink: 0; }
+  .rank-1 { background: #FFD700; color: #7A5C00; }
+  .rank-2 { background: #C0C0C0; color: #555; }
+  .rank-3 { background: #CD7F32; color: #fff; }
+
+  /* ── CHART ── */
+  .chart-wrap { width: 100%; overflow-x: auto; }
+  canvas#hourChart { display: block; }
+
+  /* ── OTHER TAB ── */
+  .other-section { padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+  .other-btn-row { display: flex; gap: 10px; }
+  .other-btn-row .other-btn { flex: 1; }
+  .other-btn-icon.tg { background: #29B6F6; }
+  .other-btn {
+    display: flex; align-items: center; gap: 16px;
+    background: var(--gray6); border: none; border-radius: 16px;
+    padding: 18px 20px; cursor: pointer; width: 100%;
+    transition: background .15s, transform .1s;
+    text-align: left;
+  }
+  .other-btn:active { background: var(--gray5); transform: scale(0.98); }
+  .other-btn-icon {
+    width: 46px; height: 46px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+  }
+  .other-btn-icon.green { background: #34C759; }
+  .other-btn-icon.blue { background: #007AFF; }
+  .other-btn-text { flex: 1; }
+  .other-btn-title { font-size: 15px; font-weight: 700; color: var(--black); }
+  .other-btn-desc { font-size: 13px; color: var(--gray); margin-top: 2px; }
+  .chevron { font-size: 18px; color: var(--gray3); }
+
+  .other-btn-row {
+    display: flex; gap: 10px;
+  }
+  .other-btn-row .other-btn {
+    flex: 1;
+    flex-direction: column; align-items: flex-start; gap: 6px;
+    padding: 16px 14px;
+  }
+  .other-btn-row .other-btn-icon {
+    width: 36px; height: 36px; border-radius: 10px; font-size: 18px;
+  }
+  .other-btn-row .other-btn-title { font-size: 13px; }
+  .other-btn-row .other-btn-desc  { font-size: 11px; }
+  #login-screen {
+    position: fixed; inset: 0; z-index: 300;
+    background: var(--white);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 40px 32px;
+    transition: opacity .3s ease, transform .3s ease;
+  }
+  #login-screen.hidden { opacity: 0; transform: translateY(-20px); pointer-events: none; }
+  .login-logo { width: 80px; height: 80px; background: var(--red); border-radius: 22px; display: flex; align-items: center; justify-content: center; margin-bottom: 24px; box-shadow: 0 8px 24px rgba(232,25,44,.3); }
+  .login-logo-text { font-size: 26px; font-weight: 800; color: white; letter-spacing: -1px; }
+  .login-title { font-size: 26px; font-weight: 800; color: var(--black); text-align: center; letter-spacing: -0.5px; }
+  .login-sub { font-size: 15px; color: var(--gray); text-align: center; margin-top: 8px; }
+  .login-form { width: 100%; margin-top: 36px; display: flex; flex-direction: column; gap: 12px; }
+  .login-input {
+    border: 1.5px solid var(--gray4); border-radius: 14px;
+    padding: 16px 20px; font-size: 18px; font-family: var(--font); font-weight: 600;
+    background: var(--gray6); color: var(--black); text-align: center; letter-spacing: 4px;
+    outline: none; transition: border-color .2s;
+    width: 100%;
+  }
+  .login-input:focus { border-color: var(--red); background: var(--white); }
+  .login-btn {
+    background: var(--red); color: white; border: none; border-radius: 14px;
+    padding: 16px; font-size: 17px; font-weight: 700; font-family: var(--font);
+    cursor: pointer; transition: transform .1s, box-shadow .1s;
+    box-shadow: 0 6px 20px rgba(232,25,44,.3);
+  }
+  .login-btn:active { transform: scale(0.97); }
+  .login-error { color: var(--red); font-size: 13px; font-weight: 600; text-align: center; min-height: 18px; }
+
+  /* ── LOADER ── */
+  .spinner {
+    width: 32px; height: 32px; border: 3px solid var(--gray5);
+    border-top-color: var(--red); border-radius: 50%;
+    animation: spin .7s linear infinite; margin: 40px auto;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: calc(var(--safe-bot) + 80px); left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--dark); color: white; padding: 12px 20px; border-radius: 16px;
+    font-size: 14px; font-weight: 600; z-index: 500;
+    opacity: 0; transition: opacity .3s, transform .3s;
+    white-space: normal; word-break: break-word; text-align: center;
+    max-width: calc(100vw - 40px); width: max-content;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── FILE INPUT HIDDEN ── */
+  #file-input { display: none; }
+
+  /* Smooth scroll */
+  .panel { scroll-behavior: smooth; }
+  /* ── WEEK REPORT MODAL ── */
+  #week-modal-overlay {
+    position: fixed; inset: 0; z-index: 150;
+    background: rgba(0,0,0,0.45);
+    display: flex; align-items: flex-end; justify-content: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity .25s ease;
+    backdrop-filter: blur(4px);
+  }
+  #week-modal-overlay.open { opacity: 1; pointer-events: all; }
+  #week-modal-box {
+    background: var(--white); border-radius: 20px 20px 0 0;
+    padding: 24px 20px calc(var(--safe-bot) + 24px);
+    width: 100%;
+    transform: translateY(100%);
+    transition: transform .3s cubic-bezier(.4,0,.2,1);
+  }
+  #week-modal-overlay.open #week-modal-box { transform: translateY(0); }
+  .week-modal-title { font-size: 17px; font-weight: 700; color: var(--black); margin-bottom: 20px; text-align: center; }
+  .week-modal-fields { display: flex; gap: 12px; margin-bottom: 20px; }
+  .week-modal-fields .field { flex: 1; }
+  .week-modal-fields input[type=date] {
+    border: 1.5px solid var(--gray4); border-radius: 12px;
+    padding: 12px 10px; font-size: 15px; font-family: var(--font); font-weight: 500;
+    background: var(--gray6); color: var(--black);
+    outline: none; width: 100%;
+    transition: border-color .2s;
+  }
+  .week-modal-fields input[type=date]:focus { border-color: var(--red); background: var(--white); }
+  .week-modal-send {
+    width: 100%; padding: 15px; border: none; border-radius: 14px;
+    background: var(--red); color: white;
+    font-size: 16px; font-weight: 700; font-family: var(--font);
+    cursor: pointer; transition: opacity .15s;
+  }
+  .week-modal-send:active { opacity: 0.85; }
+
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-logo"><div class="login-logo-text">SB</div></div>
+  <div class="login-title">SpotBot2</div>
+  <div class="login-sub">Введите пароль для входа</div>
+  <div class="login-form">
+    <input class="login-input" type="password" id="login-pw" placeholder="••••" autocomplete="current-password"/>
+    <div class="login-error" id="login-err"></div>
+    <button class="login-btn" id="login-btn">Войти</button>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+  <div class="header">
+    <div class="header-brand">
+      <div class="header-title">Spot<span>Bot</span>2</div>
+      <div class="header-sub">by kondakot</div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="panels" id="panels">
+      <!-- TAB 0: ORDERS -->
+      <div class="panel" id="panel-orders">
+        <div class="orders-header">
+          <div class="date-info" id="date-display">
+            <div class="date-label" id="date-label-text">Сегодня</div>
+            <div class="date-total" id="date-total-text">0 <span class="currency">₽</span></div>
+          </div>
+          <div class="date-count" id="date-count-text"></div>
+          <input type="date" id="date-input" />
+          <button class="btn-add" id="btn-add">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </button>
+        </div>
+        <div class="order-list" id="order-list">
+          <div class="spinner"></div>
+        </div>
+      </div>
+
+      <!-- TAB 1: STATS -->
+      <div class="panel" id="panel-stats">
+        <div class="stats-section" id="stats-content">
+          <div class="spinner"></div>
+        </div>
+      </div>
+
+      <!-- TAB 2: OTHER -->
+      <div class="panel" id="panel-other">
+        <div class="other-section">
+          <!-- Кнопки TG отчётов -->
+          <div class="other-btn-row">
+            <button class="other-btn" id="btn-tg-day">
+              <div class="other-btn-icon" style="background:#229ED9">✈️</div>
+              <div class="other-btn-text">
+                <div class="other-btn-title">Дневной отчёт тг</div>
+                <div class="other-btn-desc">Статистика за день</div>
+              </div>
+            </button>
+            <button class="other-btn" id="btn-tg-week">
+              <div class="other-btn-icon" style="background:#229ED9">💎</div>
+              <div class="other-btn-text">
+                <div class="other-btn-title">Недельный отчёт тг</div>
+                <div class="other-btn-desc">Статистика за период</div>
+              </div>
+            </button>
+          </div>
+          <!-- Скрытые date-input'ы для TG отчётов -->
+          <input type="date" id="tg-day-input" style="position:absolute;opacity:0;pointer-events:none"/>
+          <a href="/api/export/excel" class="other-btn" id="btn-excel" style="text-decoration:none">
+            <div class="other-btn-icon green">📊</div>
+            <div class="other-btn-text">
+              <div class="other-btn-title">Скачать Excel</div>
+              <div class="other-btn-desc">Все заказы в таблице</div>
+            </div>
+            <div class="chevron">›</div>
+          </a>
+          <button class="other-btn" id="btn-pwa">
+            <div class="other-btn-icon blue">📱</div>
+            <div class="other-btn-text">
+              <div class="other-btn-title">Установить PWA</div>
+              <div class="other-btn-desc">Добавить на рабочий стол</div>
+            </div>
+            <div class="chevron">›</div>
+          </button>
+          <button class="other-btn" id="btn-logout" style="margin-top:8px">
+            <div class="other-btn-icon" style="background:var(--gray5)">🚪</div>
+            <div class="other-btn-text">
+              <div class="other-btn-title" style="color:var(--red)">Выйти</div>
+              <div class="other-btn-desc">Завершить сессию</div>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="0">
+      <img src="/static/svg/orders.svg" alt="Заказы"/>
+    </button>
+    <button class="tab-btn" data-tab="1">
+      <img src="/static/svg/stats.svg" alt="Статистика"/>
+    </button>
+    <button class="tab-btn" data-tab="2">
+      <img src="/static/svg/other.svg" alt="Остальное"/>
+    </button>
+  </div>
+</div>
+
+<!-- ORDER MODAL -->
+<div class="modal-overlay" id="order-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <button class="btn-icon" id="modal-close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+      <div class="modal-title" id="modal-title">Новый заказ</div>
+      <button class="btn-icon save" id="modal-save" style="display:none">
+        <img src="/static/svg/save.svg" alt="Сохранить"/>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Адрес</label>
+        <input type="text" id="f-address" placeholder="ул. Пушкина, д.1" autocomplete="off"/>
+      </div>
+      <div class="field">
+        <label>Стоимость (₽)</label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="number" id="f-cost" placeholder="500" inputmode="numeric" min="0" style="flex:1;min-width:0;"/>
+          <button type="button" id="btn-discount" style="flex-shrink:0;background:var(--gray4);border:none;border-radius:12px;padding:0 14px;height:44px;font-size:14px;font-weight:700;color:var(--gray);font-family:Nunito,sans-serif;cursor:pointer;white-space:nowrap;" onclick="applyDiscount()"></button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Время</label>
+        <input type="time" id="f-time"/>
+      </div>
+      <div class="field">
+        <label>Фотографии чеков</label>
+        <div class="photos-row" id="photos-row"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox">
+  <button class="lightbox-close" id="lightbox-close">×</button>
+  <img id="lightbox-img" src="" alt=""/>
+</div>
+
+
+<!-- WEEK REPORT MODAL -->
+<div id="week-modal-overlay">
+  <div id="week-modal-box">
+    <div class="week-modal-title">Недельный отчёт в ТГ</div>
+    <div class="week-modal-fields">
+      <div class="field">
+        <label>С</label>
+        <input type="date" id="week-from-date"/>
+      </div>
+      <div class="field">
+        <label>По</label>
+        <input type="date" id="week-to-date"/>
+      </div>
+    </div>
+    <button class="week-modal-send" id="week-modal-send-btn">Отправить ✈️</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<input type="file" id="file-input" accept="image/*" multiple/>
+
+<div class="suggest-list" id="suggest-list"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const COST_DISCOUNT = 250; // сумма скидки на кнопке "-N₽" в форме добавления заказа
+</script>
+<script>
+'use strict';
+
+// ── Service Worker ──────────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/static/sw.js').catch(() => {});
+}
+
+// ── State ───────────────────────────────────────────────────────────────────
+let currentTab = 0;
+let currentDate = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+let editingOrderId = null;
+let pendingPhotos = []; // filenames uploaded but not yet saved
+let existingPhotos = []; // {id, filename} for edit mode
+let deletedPhotoIds = [];
+let deferredPrompt = null;
+let hourChart = null;
+let suggestTimeout = null;
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const qs = (sel, el=document) => el.querySelector(sel);
+
+function toast(msg, dur=5000) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), dur);
+}
+
+async function api(url, opts={}) {
+  const r = await fetch(url, { headers: {'Content-Type':'application/json'}, ...opts });
+  if (r.status === 401) { showLogin(); throw new Error('Unauthorized'); }
+  return r.json();
+}
+
+function fmt(dateStr) {
+  // YYYY-MM-DD -> DD/MM/YYYY
+  const [y,m,d] = dateStr.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function fmtTime(dtStr) {
+  // "YYYY-MM-DD HH:MM" -> "HH:MM"
+  return dtStr && dtStr.length >= 16 ? dtStr.slice(11, 16) : dtStr || '';
+}
+
+// ── Image compression (Telegram-style: max 1280px, JPEG 85%) ─────────────────
+async function compressImage(file) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const MAX = 1280;
+      let { width, height } = img;
+      if (width > MAX || height > MAX) {
+        if (width >= height) {
+          height = Math.round(height * MAX / width);
+          width = MAX;
+        } else {
+          width = Math.round(width * MAX / height);
+          height = MAX;
+        }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.85);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); }; // fallback to original
+    img.src = url;
+  });
+}
+
+// ── Upload with compression ───────────────────────────────────────────────────
+async function uploadFile(file) {
+  const compressed = await compressImage(file);
+  const fd = new FormData();
+  // always send as .jpg after compression
+  fd.append('file', compressed, file.name.replace(/\.[^.]+$/, '.jpg'));
+  const r = await fetch('/api/upload', { method: 'POST', body: fd });
+  return r.json();
+}
+
+// ── Auth ─────────────────────────────────────────────────────────────────────
+function showLogin() {
+  $('login-screen').classList.remove('hidden');
+  $('app').style.display = 'none';
+}
+function showApp() {
+  $('login-screen').classList.add('hidden');
+  setTimeout(() => $('login-screen').style.display='none', 300);
+  $('app').style.display = 'flex';
+  loadOrders();
+}
+
+async function checkAuth() {
+  try {
+    const d = await api('/api/auth/check');
+    if (d.authed) showApp();
+    else showLogin();
+  } catch { showLogin(); }
+}
+
+$('login-btn').addEventListener('click', async () => {
+  const pw = $('login-pw').value;
+  $('login-err').textContent = '';
+  try {
+    const d = await api('/api/auth/login', {method:'POST', body:JSON.stringify({password:pw})});
+    if (d.ok) showApp();
+    else $('login-err').textContent = d.error || 'Ошибка';
+  } catch { $('login-err').textContent = 'Неверный пароль'; }
+});
+$('login-pw').addEventListener('keydown', e => { if (e.key==='Enter') $('login-btn').click(); });
+
+$('btn-logout').addEventListener('click', async () => {
+  await api('/api/auth/logout', {method:'POST'});
+  showLogin();
+  $('login-screen').style.display='';
+  $('login-pw').value = '';
+});
+
+// ── Tabs ─────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(parseInt(btn.dataset.tab)));
+});
+
+function switchTab(idx) {
+  currentTab = idx;
+  $('panels').style.transform = `translateX(-${idx * 33.333}%)`;
+  document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', i===idx));
+  if (idx === 1) loadStats();
+}
+
+// ── Date picker ───────────────────────────────────────────────────────────────
+$('date-display').addEventListener('click', () => {
+  const inp = $('date-input');
+  inp.value = currentDate;
+  inp.showPicker ? inp.showPicker() : inp.click();
+});
+$('date-input').addEventListener('change', e => {
+  currentDate = e.target.value;
+  loadOrders();
+});
+
+// ── Orders ────────────────────────────────────────────────────────────────────
+async function loadOrders() {
+  const list = $('order-list');
+  list.innerHTML = '<div class="spinner"></div>';
+  const data = await api(`/api/orders?date=${currentDate}`);
+
+  // Update header
+  const today = new Date().toISOString().slice(0,10);
+  $('date-label-text').textContent = currentDate === today ? 'Сегодня' : fmt(currentDate);
+  $('date-total-text').innerHTML = `${data.total.toLocaleString('ru')} <span class="currency">₽</span>`;
+  const cnt = data.orders ? data.orders.length : 0;
+  $('date-count-text').textContent = cnt ? `${cnt} зак.` : '';
+
+  if (!data.orders.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📭</div><p>Нет заказов за этот день</p></div>`;
+    return;
+  }
+
+  list.innerHTML = '';
+  data.orders.forEach(o => list.appendChild(renderOrderCard(o)));
+}
+
+function renderOrderCard(o) {
+  const wrap = document.createElement('div');
+  wrap.className = 'order-item-wrap';
+  wrap.dataset.id = o.id;
+
+  const bg = document.createElement('div');
+  bg.className = 'order-delete-bg';
+  bg.innerHTML = `<img src="/static/svg/delete.svg" alt="Удалить"/>`;
+  wrap.appendChild(bg);
+
+  const card = document.createElement('div');
+  card.className = 'order-card';
+  card.innerHTML = `
+    <div class="order-card-left">
+      <div class="order-address">${esc(o.address)}</div>
+    </div>
+    <div class="order-card-right">
+      <div class="order-cost">${Number(o.cost).toLocaleString('ru')} ₽</div>
+      <div class="order-time">${fmtTime(o.order_time)}</div>
+    </div>`;
+  wrap.appendChild(card);
+
+  // Tap to edit
+  card.addEventListener('click', () => openModal(o.id));
+
+  // Swipe to delete
+  initSwipe(card, wrap, o.id);
+  return wrap;
+}
+
+function initSwipe(card, wrap, orderId) {
+  let startX = 0, curX = 0, dragging = false;
+  const THRESHOLD = 100;
+
+  function onStart(e) {
+    startX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+    curX = 0; dragging = true;
+    card.style.transition = 'none';
+  }
+  function onMove(e) {
+    if (!dragging) return;
+    const x = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+    curX = Math.min(0, x - startX);
+    card.style.transform = `translateX(${curX}px)`;
+  }
+  function onEnd() {
+    if (!dragging) return;
+    dragging = false;
+    card.style.transition = 'transform .3s ease';
+    if (curX < -THRESHOLD) {
+      card.style.transform = `translateX(-100%)`;
+      setTimeout(() => deleteOrder(orderId, wrap), 300);
+    } else {
+      card.style.transform = 'translateX(0)';
+    }
+  }
+  card.addEventListener('touchstart', onStart, {passive:true});
+  card.addEventListener('touchmove', onMove, {passive:true});
+  card.addEventListener('touchend', onEnd);
+}
+
+async function deleteOrder(id, wrap) {
+  wrap.style.transition = 'height .3s, opacity .3s';
+  wrap.style.height = wrap.offsetHeight + 'px';
+  requestAnimationFrame(() => { wrap.style.height = '0'; wrap.style.opacity = '0'; });
+  await api(`/api/orders/${id}`, {method:'DELETE'});
+  setTimeout(() => { wrap.remove(); loadOrders(); }, 300);
+  toast('Заказ удалён');
+  invalidateStats();
+}
+
+function esc(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+function openModal(orderId=null) {
+  editingOrderId = orderId;
+  pendingPhotos = [];
+  existingPhotos = [];
+  deletedPhotoIds = [];
+  $('f-address').value = '';
+  $('f-cost').value = '';
+  $('f-time').value = '';
+  $('photos-row').innerHTML = '';
+  $('modal-save').style.display = 'none';
+  $('modal-title').textContent = orderId ? 'Редактировать' : 'Новый заказ';
+
+  if (orderId) {
+    api(`/api/orders/${orderId}`).then(o => {
+      $('f-address').value = o.address;
+      $('f-cost').value = o.cost;
+      $('f-time').value = fmtTime(o.order_time);
+      existingPhotos = o.photos || [];
+      renderPhotos();
+      checkSaveBtn();
+    });
+  } else {
+    // set current time
+    const now = new Date();
+    $('f-time').value = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  }
+
+  $('order-modal').classList.add('open');
+}
+
+function closeModal() {
+  $('order-modal').classList.remove('open');
+  $('suggest-list').classList.remove('show');
+}
+
+$('modal-close').addEventListener('click', closeModal);
+$('order-modal').addEventListener('click', e => { if(e.target===$('order-modal')) closeModal(); });
+
+$('modal-save').addEventListener('click', saveOrder);
+
+async function saveOrder() {
+  const address = $('f-address').value.trim();
+  const cost = parseInt($('f-cost').value);
+  const time = $('f-time').value;
+  if (!address || isNaN(cost) || !time) { toast('Заполните все поля'); return; }
+
+  const orderTime = `${currentDate} ${time}`;
+
+  if (editingOrderId) {
+    await api(`/api/orders/${editingOrderId}`, {
+      method:'PUT',
+      body: JSON.stringify({address, cost, order_time: orderTime, new_photos: pendingPhotos, deleted_photos: deletedPhotoIds})
+    });
+    toast('Изменения сохранены');
+  } else {
+    await api('/api/orders', {
+      method:'POST',
+      body: JSON.stringify({address, cost, order_time: orderTime, photos: pendingPhotos})
+    });
+    toast('Заказ добавлен');
+  }
+  closeModal();
+  loadOrders();
+  invalidateStats();
+}
+
+// ── Input validation → show save btn ────────────────────────────────────────
+function applyDiscount() {
+  const inp = $('f-cost');
+  const val = parseInt(inp.value) || 0;
+  if (val > 0) {
+    inp.value = Math.max(0, val - COST_DISCOUNT);
+    checkSaveBtn();
+  }
+}
+
+function updateDiscountBtn() {
+  const btn = $('btn-discount');
+  if (btn) btn.textContent = `−${COST_DISCOUNT}₽`;
+}
+
+function checkSaveBtn() {
+  const ok = $('f-address').value.trim() && $('f-cost').value && $('f-time').value;
+  $('modal-save').style.display = ok ? 'flex' : 'none';
+}
+['f-address','f-cost','f-time'].forEach(id => { const el = $(id); if(el) el.addEventListener('input', checkSaveBtn); });
+
+// ── Address suggest ───────────────────────────────────────────────────────────
+let suggestOpen = false;
+
+function positionSuggestList() {
+  const input = $('f-address');
+  const list = $('suggest-list');
+  const rect = input.getBoundingClientRect();
+  list.style.top = (rect.bottom + 6) + 'px';
+  list.style.left = rect.left + 'px';
+  list.style.width = rect.width + 'px';
+}
+
+async function fetchSuggestions() {
+  const q = $('f-address').value.trim();
+  const list = $('suggest-list');
+
+  const data = await api(`/api/addresses?q=${encodeURIComponent(q)}`);
+  if (!data.addresses || !data.addresses.length) {
+    list.classList.remove('show');
+    suggestOpen = false;
+    return;
+  }
+
+  list.innerHTML = data.addresses.map(a => `<div class="suggest-item">${esc(a)}</div>`).join('');
+  positionSuggestList();
+  list.classList.add('show');
+  suggestOpen = true;
+
+  list.querySelectorAll('.suggest-item').forEach(item => {
+    item.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      $('f-address').value = item.textContent;
+      list.classList.remove('show');
+      suggestOpen = false;
+      checkSaveBtn();
+    });
+  });
+}
+
+$('f-address').addEventListener('input', () => {
+  clearTimeout(suggestTimeout);
+  suggestTimeout = setTimeout(fetchSuggestions, 200);
+  checkSaveBtn();
+});
+
+// Show recent addresses when field gets focus
+$('f-address').addEventListener('focus', () => {
+  clearTimeout(suggestTimeout);
+  suggestTimeout = setTimeout(fetchSuggestions, 100);
+});
+
+$('f-address').addEventListener('blur', () => {
+  // Small delay so pointerdown on suggest item fires first
+  setTimeout(() => {
+    $('suggest-list').classList.remove('show');
+    suggestOpen = false;
+  }, 200);
+});
+
+// ── Photo upload ──────────────────────────────────────────────────────────────
+$('btn-add').addEventListener('click', () => {
+  const fi = $('file-input');
+  fi.onchange = async () => {
+    const files = Array.from(fi.files);
+    if (!files.length) return;
+    openModal(null);
+    for (const f of files) {
+      const d = await uploadFile(f);
+      if (d.ok) { pendingPhotos.push(d.filename); renderPhotos(); }
+    }
+    fi.value = '';
+  };
+  fi.click();
+});
+
+function renderPhotos() {
+  const row = $('photos-row');
+  row.innerHTML = '';
+  // existing photos
+  existingPhotos.filter(p => !deletedPhotoIds.includes(p.id)).forEach(p => {
+    const wrap = document.createElement('div');
+    wrap.className = 'photo-thumb-wrap';
+    wrap.innerHTML = `
+      <img class="photo-thumb" src="/uploads/${p.filename}" data-src="/uploads/${p.filename}"/>
+      <div class="photo-remove" data-id="${p.id}">×</div>
+      <div class="photo-ai-btn">AI</div>`;
+    wrap.querySelector('.photo-thumb').addEventListener('click', () => openLightbox(`/uploads/${p.filename}`));
+    wrap.querySelector('.photo-remove').addEventListener('click', () => {
+      deletedPhotoIds.push(p.id);
+      renderPhotos();
+    });
+    wrap.querySelector('.photo-ai-btn').addEventListener('click', () => analyzePhotoWithGemini(p.filename, wrap.querySelector('.photo-ai-btn')));
+    row.appendChild(wrap);
+  });
+  // pending photos
+  pendingPhotos.forEach((fn, i) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'photo-thumb-wrap';
+    wrap.innerHTML = `
+      <img class="photo-thumb" src="/uploads/${fn}"/>
+      <div class="photo-remove" data-idx="${i}">×</div>
+      <div class="photo-ai-btn">AI</div>`;
+    wrap.querySelector('.photo-thumb').addEventListener('click', () => openLightbox(`/uploads/${fn}`));
+    wrap.querySelector('.photo-remove').addEventListener('click', () => {
+      pendingPhotos.splice(i, 1);
+      renderPhotos();
+    });
+    wrap.querySelector('.photo-ai-btn').addEventListener('click', () => analyzePhotoWithGemini(fn, wrap.querySelector('.photo-ai-btn')));
+    row.appendChild(wrap);
+  });
+}
+
+// ── Gemini AI — через серверный прокси /api/gemini/analyze ───────────────────
+let geminiPromptCache = null;
+
+async function getGeminiPrompt() {
+  if (geminiPromptCache) return geminiPromptCache;
+  try {
+    const r = await fetch('/static/geminipromptapi.txt');
+    if (!r.ok) throw new Error('prompt not found');
+    geminiPromptCache = (await r.text()).trim();
+    return geminiPromptCache;
+  } catch {
+    return 'Распознай чек на фотографии. Верни ТОЛЬКО две строки: первая — сумма чека числом, вторая — время в формате hh:mm. Без пояснений.';
+  }
+}
+
+async function analyzePhotoWithGemini(filename, btn) {
+  btn.classList.add('loading');
+  btn.textContent = '…';
+  try {
+    const prompt = await getGeminiPrompt();
+
+    const resp = await fetch('/api/gemini/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename, prompt })
+    });
+
+    if (resp.status === 401) { showLogin(); return; }
+
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'Ошибка сервера');
+
+    const text = data.text.trim();
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length < 2) throw new Error(`Неверный формат ответа: «${text}»`);
+
+    const costRaw = lines[0].replace(/[^\d]/g, '');
+    const timeMatch = lines[1].match(/\d{1,2}:\d{2}/);
+
+    if (!costRaw) throw new Error(`Не удалось распознать сумму: «${lines[0]}»`);
+    if (!timeMatch) throw new Error(`Не удалось распознать время: «${lines[1]}»`);
+
+    $('f-cost').value = costRaw;
+    const [hh, mm] = timeMatch[0].split(':');
+    $('f-time').value = `${hh.padStart(2,'0')}:${mm}`;
+    checkSaveBtn();
+
+    toast('✅ Данные распознаны!');
+  } catch (err) {
+    toast(`❌ ${err.message}`, 5000);
+  } finally {
+    btn.classList.remove('loading');
+    btn.textContent = 'AI';
+  }
+}
+
+// ── Lightbox ──────────────────────────────────────────────────────────────────
+function openLightbox(src) {
+  $('lightbox-img').src = src;
+  $('lightbox').classList.add('open');
+}
+$('lightbox-close').addEventListener('click', () => $('lightbox').classList.remove('open'));
+$('lightbox').addEventListener('click', e => { if(e.target===$('lightbox')) $('lightbox').classList.remove('open'); });
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+async function loadStats() {
+  const content = $('stats-content');
+  if (content.dataset.loaded) return; // cache
+  content.innerHTML = '<div class="spinner"></div>';
+  const data = await api('/api/stats');
+  content.dataset.loaded = '1';
+  renderStats(data);
+}
+
+function renderStats(data) {
+  const { totals, top_addresses, hourly } = data;
+  $('stats-content').innerHTML = `
+    <div class="stats-card">
+      <div class="stats-card-title">Общий итог</div>
+      <div class="stats-big">
+        <div class="stats-metric">
+          <div class="stats-metric-val">${totals.count}</div>
+          <div class="stats-metric-label">Заказов всего</div>
+        </div>
+        <div class="stats-metric">
+          <div class="stats-metric-val">${Number(totals.sum).toLocaleString('ru')} ₽</div>
+          <div class="stats-metric-label">Выручка всего</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-card">
+      <div class="stats-card-title">Топ 10 клиентов</div>
+      ${renderTopTable(top_addresses)}
+    </div>
+
+    <div class="stats-card">
+      <div class="stats-card-title">Заказы по часам</div>
+      <div class="chart-wrap"><canvas id="hourChart" height="220"></canvas></div>
+    </div>
+  `;
+  renderHourChart(hourly);
+}
+
+function renderTopTable(addrs) {
+  if (!addrs.length) return '<p style="color:var(--gray);font-size:14px">Нет данных</p>';
+  const rows = addrs.map((a, i) => `
+    <tr>
+      <td><span class="rank-badge rank-${i+1}">${i+1}</span><span class="addr-cell" title="${esc(a.address)}">${esc(a.address)}</span></td>
+      <td>${a.count}</td>
+      <td>${Number(a.total).toLocaleString('ru')} ₽</td>
+    </tr>`).join('');
+  return `<table class="top-table">
+    <thead><tr><th>Адрес</th><th>Заказы</th><th>Сумма</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+function renderHourChart(hourly) {
+  const canvas = $('hourChart');
+  if (!canvas) return;
+  if (hourChart) hourChart.destroy();
+
+  const labels = hourly.map(h => `${h.hour}:00`);
+  const counts = hourly.map(h => h.count);
+  const avgCosts = hourly.map(h => h.avg_cost);
+  const probs = hourly.map(h => h.probability);
+
+  hourChart = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Заказы',
+        data: counts,
+        borderColor: '#E8192C',
+        backgroundColor: 'rgba(232,25,44,0.08)',
+        borderWidth: 2.5,
+        pointBackgroundColor: '#E8192C',
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        fill: true,
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true,
+      interaction: { intersect: false, mode: 'index' },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            afterLabel: ctx => {
+              const i = ctx.dataIndex;
+              return `Ср. чек: ${avgCosts[i]} ₽\nВероятность: ${probs[i]}%`;
+            }
+          }
+        },
+        datalabels: false
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { family: 'Nunito', size: 12 }, color: '#636366' } },
+        y: { grid: { color: '#f2f2f7' }, ticks: { font: { family: 'Nunito', size: 12 }, color: '#636366', stepSize: 1 }, beginAtZero: true }
+      }
+    },
+    plugins: []
+  });
+}
+
+// ── PWA install ───────────────────────────────────────────────────────────────
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+});
+
+$('btn-pwa').addEventListener('click', async () => {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    toast(outcome === 'accepted' ? 'Установлено! 🎉' : 'Отменено');
+  } else {
+    toast('Откройте меню браузера → "На экран Home" (Safari) или "Установить приложение" (Chrome)');
+  }
+});
+
+$('btn-tg-day').addEventListener('click', () => {
+  const inp = $('tg-day-input');
+  inp.value = '';  // сброс перед открытием — чтобы change сработал даже при выборе той же даты
+  inp.onchange = async () => {
+    const day = inp.value;
+    if (!day) return;
+    try {
+      const d = await api('/api/tg/report/day', {
+        method: 'POST',
+        body: JSON.stringify({ date: day })
+      });
+      if (d.ok) toast('✅ Дневной отчёт отправлен в ТГ');
+      else toast(`❌ ${d.error || 'Ошибка'}`, 5000);
+    } catch {}
+  };
+  inp.showPicker ? inp.showPicker() : inp.click();
+});
+
+// ── Week report modal ────────────────────────────────────────────────────────
+function openWeekModal() {
+  // prefill: from = 7 days ago, to = today
+  const today = new Date();
+  const weekAgo = new Date(today);
+  weekAgo.setDate(today.getDate() - 6);
+  const fmt = d => d.toISOString().slice(0,10);
+  $('week-from-date').value = fmt(weekAgo);
+  $('week-to-date').value   = fmt(today);
+  $('week-modal-overlay').classList.add('open');
+}
+
+function closeWeekModal() {
+  $('week-modal-overlay').classList.remove('open');
+}
+
+$('btn-tg-week').addEventListener('click', openWeekModal);
+
+$('week-modal-overlay').addEventListener('click', e => {
+  if (e.target === $('week-modal-overlay')) closeWeekModal();
+});
+
+$('week-modal-send-btn').addEventListener('click', async () => {
+  const dateFrom = $('week-from-date').value;
+  const dateTo   = $('week-to-date').value;
+  if (!dateFrom || !dateTo) { toast('❌ Выберите обе даты', 5000); return; }
+  if (dateTo < dateFrom)    { toast('❌ Конечная дата раньше начальной', 5000); return; }
+  closeWeekModal();
+  try {
+    const d = await api('/api/tg/report/week', {
+      method: 'POST',
+      body: JSON.stringify({ date_from: dateFrom, date_to: dateTo })
+    });
+    if (d.ok) toast('✅ Недельный отчёт отправлен в ТГ');
+    else toast(`❌ ${d.error || 'Ошибка'}`, 5000);
+  } catch {}
+});
+
+// ── Stats cache invalidation ──────────────────────────────────────────────────
+function invalidateStats() {
+  const c = $('stats-content');
+  if (c) delete c.dataset.loaded;
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+checkAuth();
+updateDiscountBtn();
+</script>
+</body>
+</html>
